@@ -1,0 +1,6 @@
+[package]
+name = "finances"
+version = "0.1.0"
+authors = ["m-strasser <mst1409@gmx.at>"]
+
+[dependencies]
