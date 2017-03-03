@@ -75,7 +75,7 @@ fn main() {
     let mut expense = 0;
     let mut cmd = String::new();
     let mut amounts: Vec<f64> = Vec::new();
-    let accounts: Vec<Account> = match restore(".accounts".to_string()) {
+    let accounts: Vec<Account> = match restore(".accounts.finance".to_string()) {
         Ok(accs) => accs,
         Err(e) => { handle_error(e.to_string()); return; }
     };
