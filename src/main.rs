@@ -1,3 +1,6 @@
+mod account;
+use account::Account;
+
 extern crate argparse;
 
 use std::io;
@@ -39,50 +42,6 @@ fn store(amounts: Vec<f64>) {
         };
     }
 }
-
-fn restore_account(path: String) -> Result<Account, io::Error> {
-    let parts: Vec<&str> = path.split(':').collect();
-    if (parts.len()) < 3 {
-        return Err(io::Error::new(io::ErrorKind::Other,
-                              "Stored account needs to contain 3 parameters!"));
-    }
-    let name: String = parts[0].to_string();
-    let path: String = parts[1].to_string();
-    let can_overdraw: bool = match parts[2].parse::<bool>() {
-        Ok(val) => val,
-        Err(_) => return Err(io::Error::new(io::ErrorKind::Other,
-                                            "Third account value needs to be bool!"))
-    };
-
-    let mut transactions: Vec<f64> = Vec::new();
-    let f = match OpenOptions::new().read(true).open(&path){
-        Ok(f) => f,
-        Err(e) => return Err(e)
-    };
-    let reader = BufReader::new(&f);
-
-    for res in reader.lines() {
-        match res {
-            Ok(line) => {
-                match line.parse::<f64>() {
-                    Ok(amount) => transactions.push(amount),
-                    Err(_) => return Err(io::Error::new(io::ErrorKind::Other,
-                                                        "Transactions must be convertable to float!"))
-                };
-            },
-            Err(e) => return Err(e)
-        };
-    }
-
-    Ok(Account {
-        name: name,
-        filepath: path,
-        balance: 0.0,
-        can_overdraw: can_overdraw,
-        transactions: Box::<Vec<f64>>::new(transactions)
-    })
-}
-
 fn restore(path: String) -> Result<Vec<Account>, io::Error> {
     let mut accounts: Vec<Account> = Vec::new();
     let mut account_paths: Vec<Result<String, io::Error>> = Vec::new();
@@ -100,7 +59,7 @@ fn restore(path: String) -> Result<Vec<Account>, io::Error> {
     for account_path in account_paths {
         match account_path {
             Ok(line) => {
-                match restore_account(line) {
+                match Account::from_file(line) {
                     Ok(acc) => accounts.push(acc),
                     Err(e) => return Err(e)
                 };
@@ -110,15 +69,6 @@ fn restore(path: String) -> Result<Vec<Account>, io::Error> {
     }
 
     return Ok(accounts);
-}
-
-#[derive (Debug)]
-struct Account {
-    name: String,
-    filepath: String,
-    balance: f64,
-    can_overdraw: bool,
-    transactions: Box<Vec<f64>>
 }
 
 fn main() {
