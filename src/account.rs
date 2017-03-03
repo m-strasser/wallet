@@ -4,7 +4,7 @@ use std::io::{Write, BufReader, BufRead};
 
 #[derive (Debug)]
 pub struct Account {
-    name: String,
+    pub name: String,
     filepath: String,
     balance: f64,
     can_overdraw: bool,
@@ -76,7 +76,9 @@ impl Account {
     }
 
     pub fn spent(&mut self, amount: f64) -> &mut Account {
-        self.transactions.push(amount);
+        let mut value = amount;
+        if value > 0.0 { value *= -1.0; }
+        self.transactions.push(value);
 
         self
     }

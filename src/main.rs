@@ -75,16 +75,16 @@ fn restore(path: String) -> Result<Vec<Account>, io::Error> {
 fn main() {
     let mut expense = 0;
     let mut cmd = String::new();
-    let mut amounts: Vec<f64> = Vec::new();
+
     let mut accounts: Vec<Account> = match restore(".accounts.finance".to_string()) {
         Ok(accs) => accs,
         Err(e) => { handle_error(e.to_string()); return; }
     };
+    let default_account = 0;
+    let mut account = String::new();
+    let mut account_index = default_account;
 
-    match accounts[0].save() {
-        Ok(_) => { println!("Saved account."); },
-        Err(e) => { handle_error(e.to_string()); return; }
-    };
+    let mut amounts: Vec<f64> = Vec::new();
 
     {
         let mut ap = ArgumentParser::new();
@@ -96,13 +96,22 @@ fn main() {
             .add_argument("AMOUNT", Collect, "Money spent.");
         ap.refer(&mut expense)
             .add_option(&["--expense"], Store, "Amount spent.");
+        ap.refer(&mut account)
+            .add_option(&["--account"], Store, "Account to operate on.");
         ap.parse_args_or_exit();
+    }
+
+    if account != "" {
+        account_index = match accounts.iter().position(|x| x.name == account) {
+            Some(i) => i,
+            None => { println!("Unkown account, reverting to default!"); default_account }
+        }
     }
 
     match cmd.as_ref() {
         "spent" => {
             for amount in amounts {
-                accounts[0].spent(amount);
+                accounts[account_index].spent(amount).save();
             }
         },
         "got" => {
