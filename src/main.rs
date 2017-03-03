@@ -1,7 +1,7 @@
 extern crate argparse;
 
 use std::fs::File;
-use std::io::Write;
+use std::io::{Write, BufReader, BufRead};
 use argparse::{ArgumentParser, Store, Collect};
 
 fn handle_error(msg: String) {
@@ -38,11 +38,36 @@ fn store(amounts: Vec<f64>) {
     }
 }
 
+fn restore(path: String) -> Vec<f64> {
+    let mut amounts: Vec<f64> = Vec::new();
+
+    let f = match File::open(path) {
+        Ok(f) => f,
+        Err(e) => { handle_error(e.to_string()); return amounts; }
+    };
+    let reader = BufReader::new(&f);
+
+    for res in reader.lines() {
+        match res {
+            Ok(l) => {
+                match l.parse::<f64>() {
+                    Ok(amount) => amounts.push(amount),
+                    Err(e) => { handle_error(e.to_string()); return amounts; }
+                };
+            },
+            Err(e) => { handle_error(e.to_string()); return amounts; }
+        }
+    }
+
+    return amounts;
+}
+
 fn main() {
     let mut expense = 0;
     let mut cmd = String::new();
     let mut amounts: Vec<f64> = Vec::new();
 
+    println!("{:?}", restore("expenses.txt".to_string()));
     {
         let mut ap = ArgumentParser::new();
         ap.set_description("FINANCES");
