@@ -1,6 +1,6 @@
 extern crate argparse;
 
-use std::fs::File;
+use std::fs::{OpenOptions};
 use std::io::{Write, BufReader, BufRead};
 use argparse::{ArgumentParser, Store, Collect};
 
@@ -26,7 +26,7 @@ fn got(amounts: Vec<f64>) {
 }
 
 fn store(amounts: Vec<f64>) {
-    let mut f = match File::create("expenses.txt") {
+    let mut f = match OpenOptions::new().append(true).open("expenses.txt") {
         Ok(f) => f,
         Err(e) => { handle_error(e.to_string()); return; }
     };
@@ -41,7 +41,7 @@ fn store(amounts: Vec<f64>) {
 fn restore(path: String) -> Vec<f64> {
     let mut amounts: Vec<f64> = Vec::new();
 
-    let f = match File::open(path) {
+    let f = match OpenOptions::new().read(true).open(path) {
         Ok(f) => f,
         Err(e) => { handle_error(e.to_string()); return amounts; }
     };
