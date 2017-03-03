@@ -1,6 +1,6 @@
 use std::io;
 use std::fs::{OpenOptions};
-use std::io::{BufReader, BufRead};
+use std::io::{Write, BufReader, BufRead};
 
 #[derive (Debug)]
 pub struct Account {
@@ -22,7 +22,7 @@ impl Account {
         }
     }
 
-    pub fn from_file(path: String) -> Result<Account, io::Error> {
+    pub fn load(path: String) -> Result<Account, io::Error> {
         let parts: Vec<&str> = path.split(':').collect();
         if (parts.len()) < 3 {
             return Err(io::Error::new(io::ErrorKind::Other,
@@ -57,5 +57,27 @@ impl Account {
         }
 
         Ok(Account::new(name, path, 0.0, can_overdraw, Box::<Vec<f64>>::new(transactions)))
+    }
+
+    pub fn save(&self) -> Result<&Account, io::Error> {
+        let mut f = match OpenOptions::new().write(true).open(&self.filepath) {
+            Ok(f) => f,
+            Err(e) => { return Err(e); }
+        };
+
+        for transaction in self.transactions.iter() {
+            match write!(f, "{:.*}\n", 2, transaction) {
+                Ok(_) => {},
+                Err(e) => return Err(e)
+            };
+        }
+
+        Ok(self)
+    }
+
+    pub fn spent(&mut self, amount: f64) -> &mut Account {
+        self.transactions.push(amount);
+
+        self
     }
 }

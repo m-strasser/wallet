@@ -42,6 +42,7 @@ fn store(amounts: Vec<f64>) {
         };
     }
 }
+
 fn restore(path: String) -> Result<Vec<Account>, io::Error> {
     let mut accounts: Vec<Account> = Vec::new();
     let mut account_paths: Vec<Result<String, io::Error>> = Vec::new();
@@ -59,7 +60,7 @@ fn restore(path: String) -> Result<Vec<Account>, io::Error> {
     for account_path in account_paths {
         match account_path {
             Ok(line) => {
-                match Account::from_file(line) {
+                match Account::load(line) {
                     Ok(acc) => accounts.push(acc),
                     Err(e) => return Err(e)
                 };
@@ -68,15 +69,20 @@ fn restore(path: String) -> Result<Vec<Account>, io::Error> {
         }
     }
 
-    return Ok(accounts);
+    Ok(accounts)
 }
 
 fn main() {
     let mut expense = 0;
     let mut cmd = String::new();
     let mut amounts: Vec<f64> = Vec::new();
-    let accounts: Vec<Account> = match restore(".accounts.finance".to_string()) {
+    let mut accounts: Vec<Account> = match restore(".accounts.finance".to_string()) {
         Ok(accs) => accs,
+        Err(e) => { handle_error(e.to_string()); return; }
+    };
+
+    match accounts[0].save() {
+        Ok(_) => { println!("Saved account."); },
         Err(e) => { handle_error(e.to_string()); return; }
     };
 
@@ -95,7 +101,9 @@ fn main() {
 
     match cmd.as_ref() {
         "spent" => {
-            spent(amounts);
+            for amount in amounts {
+                accounts[0].spent(amount);
+            }
         },
         "got" => {
             got(amounts);
