@@ -1,3 +1,6 @@
+use interval::Interval;
+use interval::interval_from_string;
+
 use std::io;
 use std::fmt;
 use chrono::prelude::{DateTime, UTC};
@@ -6,7 +9,8 @@ use chrono::prelude::{DateTime, UTC};
 pub struct Transaction {
     pub date: DateTime<UTC>,
     pub amount: f64,
-    pub description: String
+    pub description: String,
+    pub interval: Option<Interval>,
 }
 
 impl fmt::Display for Transaction {
@@ -16,16 +20,18 @@ impl fmt::Display for Transaction {
 }
 
 impl Transaction {
-    pub fn new(date: DateTime<UTC>, amount: f64, description: String) -> Transaction {
+    pub fn new(date: DateTime<UTC>, amount: f64, description: String, interval: Option<Interval>) -> Transaction {
         Transaction {
             date: date,
             amount: amount,
-            description: description
+            description: description,
+            interval: interval
         }
     }
 
     pub fn load_from_string(line: String) -> Result<Transaction, io::Error> {
         let parts: Vec<&str> = line.split(';').collect();
+        let mut interval: Option<Interval> = None;
 
         if(parts.len()) < 3 {
             return Err(
@@ -55,14 +61,28 @@ impl Transaction {
 
         let description: String = parts[2].trim().to_string();
 
-        Ok(Transaction {
+        if parts.len() > 3 {
+            interval = match interval_from_string(parts[3].to_string()) {
+                Ok(i) => Some(i),
+                Err(e) => return Err(e)
+            };
+        }
+
+        return Ok(Transaction {
             date: date,
             amount: amount,
-            description: description
-        })
+            description: description,
+            interval: interval
+        });
     }
 
     pub fn save_to_string(&self) -> String {
-        format!("{:?};{};{}\n", self.date, self.amount, self.description).to_string()
+        let mut string = format!("{:?};{};{}\n", self.date, self.amount, self.description).to_string();
+        string = match self.interval {
+            Some(ref i) => format!("{}:{:?}", string, i),
+            None => format!("{}", string)
+        };
+
+        return string;
     }
 }

@@ -1,10 +1,12 @@
 use transaction::Transaction;
+use interval::Interval;
 
 use std::io;
 use std::fmt;
 use std::fs::{OpenOptions};
 use std::io::{Write, BufReader, BufRead};
 use chrono::prelude::UTC;
+use chrono::{Duration, Datelike};
 
 #[derive (Debug)]
 pub enum AccountError {
@@ -20,6 +22,7 @@ impl fmt::Display for AccountError {
         };
     }
 }
+
 pub static ACCOUNTS_FILE: &'static str = ".accounts.finance";
 
 #[derive (Debug)]
@@ -29,7 +32,7 @@ pub struct Account {
     filepath: String,
     pub balance: f64,
     can_overdraw: bool,
-    pub transactions: Box<Vec<Transaction>>
+    pub transactions: Box<Vec<Box<Transaction>>>
 }
 
 impl fmt::Display for Account {
@@ -39,7 +42,7 @@ impl fmt::Display for Account {
 }
 
 impl Account {
-    pub fn new(n: String, d: String, fp:String, b: f64, o: bool, ts: Box<Vec<Transaction>>)
+    pub fn new(n: String, d: String, fp:String, b: f64, o: bool, ts: Box<Vec<Box<Transaction>>>)
         -> Account {
         Account {
             name: n,
@@ -71,7 +74,7 @@ impl Account {
             filepath: filepath,
             balance: 0.0,
             can_overdraw: can_overdraw,
-            transactions: Box::<Vec<Transaction>>::new(Vec::new())
+            transactions: Box::<Vec<Box<Transaction>>>::new(Vec::new())
         })
     }
 
@@ -108,22 +111,72 @@ impl Account {
         let description: String = parts[2].trim().to_string();
         let mut balance: f64 = 0.0;
 
-        let mut transactions: Vec<Transaction> = Vec::new();
+        let mut transactions: Vec<Box<Transaction>> = Vec::new();
+        let mut recurring: Vec<Box<Transaction>> = Vec::new();
+        let mut transaction: Box<Transaction>;
+        let mut changed: bool = false;
         for res in reader.lines() {
             match res {
                 Ok(line) => {
                     if line.len() < 1 { continue; }
-                    match Transaction::load_from_string(line) {
-                        Ok(t) => { balance += t.amount; transactions.push(t); },
+                    transaction = match Transaction::load_from_string(line) {
+                        Ok(t) => {
+                            balance += t.amount;
+                            Box::new(t)
+                        },
                         Err(e) => return Err(e)
                     };
+                    Account::update_transaction(&mut transaction);
+                    match transaction.interval {
+                        Some(_) => {
+                            if changed { transactions.push(transaction); }
+                            recurring.push(transaction);
+                        }
+                        None => { transactions.push(transaction); }
+                    }
                 },
                 Err(e) => return Err(e)
             };
         }
 
         Ok(Account::new(name, description, path, balance, can_overdraw,
-                        Box::<Vec<Transaction>>::new(transactions)))
+                        Box::<Vec<Box<Transaction>>>::new(transactions)))
+    }
+
+    fn update_transaction<'a>(t: &'a mut Transaction) -> bool {
+        match t.interval {
+            Some(ref i) => {
+                match i {
+                    &Interval::Daily => {
+                        if t.date.date() < UTC::now().date() {
+                            t.date = UTC::now();
+                            return true;
+                        }
+                    },
+                    &Interval::Weekly => {
+                        if (t.date.date() + Duration::days(7)) < UTC::now().date() {
+                            t.date = UTC::now();
+                            return true;
+                        }
+                    },
+                    &Interval::Biweekly => {
+                        if (t.date.date() + Duration::days(14)) < UTC::now().date() {
+                            t.date = UTC::now();
+                            return true;
+                        }
+                    },
+                    &Interval::Monthly => {
+                        if t.date.month() < UTC::now().month() && t.date.day() <= UTC::now().day() {
+                            t.date = UTC::now();
+                            return true;
+                        }
+                    }
+                }
+            },
+            None => {}
+        }
+
+        return false;
     }
 
     pub fn save(&self) -> Result<&Account, io::Error> {
@@ -153,14 +206,14 @@ impl Account {
         if !self.can_overdraw && (self.balance + value) < 0.0 {
             return Err(AccountError::NoOverdraw( format!("Cannot overdraw {}", self.name) ));
         }
-        self.transactions.push(Transaction::new(UTC::now(), value, description));
+        self.transactions.push(Box::new(Transaction::new(UTC::now(), value, description, None)));
 
         Ok(self)
     }
 
     pub fn got(&mut self, amount: f64, description: String)
         -> &mut Account {
-        self.transactions.push(Transaction::new(UTC::now(), amount, description));
+        self.transactions.push(Box::new(Transaction::new(UTC::now(), amount, description, None)));
 
         self
     }

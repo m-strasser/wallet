@@ -1,3 +1,4 @@
+mod interval;
 mod account;
 mod transaction;
 use account::Account;
