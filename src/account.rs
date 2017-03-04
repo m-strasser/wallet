@@ -29,7 +29,7 @@ pub struct Account {
     filepath: String,
     pub balance: f64,
     can_overdraw: bool,
-    transactions: Box<Vec<Transaction>>
+    pub transactions: Box<Vec<Transaction>>
 }
 
 impl fmt::Display for Account {

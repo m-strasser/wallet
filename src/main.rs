@@ -55,6 +55,31 @@ impl Args {
     }
 }
 
+fn print_overview(accounts: &Vec<Account>) {
+    let mut overall_balance = 0.0;
+    for account in accounts {
+        println!("{}", account);
+        overall_balance += account.balance;
+    }
+    println!("=====================================================");
+    println!("{:.*}", 2, overall_balance);
+}
+
+fn print_account(name: String, accounts: &Vec<Account>) {
+    let account_index = match (*accounts).iter().position(|x| x.name == name) {
+        Some(i) => i,
+        None => {
+            println!("Unkown account, printing overview.");
+            print_overview(&accounts);
+            return;
+        }
+    };
+
+    for transaction in accounts[account_index].transactions.iter() {
+        println!("{}", transaction);
+    }
+}
+
 fn main() {
     let mut cmd = String::new();
     let mut accounts = Vec::new();
@@ -145,13 +170,10 @@ fn main() {
             };
         },
         "show" => {
-            let mut overall_balance = 0.0;
-            for account in &accounts {
-                println!("'{}'", account);
-                overall_balance += account.balance;
+            match args {
+                Some(a) => { print_account(a.name, &accounts); },
+                None => { print_overview(&accounts); }
             }
-            println!("=====================================================");
-            println!("{:.*}", 2, overall_balance);
         },
         "new" => {
             match args {
