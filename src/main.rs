@@ -109,6 +109,7 @@ fn main() {
     let mut amount: Option<f64> = None;
     let mut description: String = String::from("No description");
     let mut str_args: Vec<String> = Vec::new();
+    let mut args: Option<Args> = None;
 
     {
         let mut ap = ArgumentParser::new();
@@ -133,13 +134,15 @@ fn main() {
         return;
     }
 
-    let args: Option<Args> = match Args::from_string(str_args.join(" ")) {
-        Ok(a) => {
-            amount = a.amount;
-            Some(a)
-        },
-        Err(e) => { if cmd != "show" { handle_error(e.to_string()); return; }; None }
-    };
+    if str_args.len() > 0 {
+        args = match Args::from_string(str_args.join(" ")) {
+            Ok(a) => {
+                amount = a.amount;
+                Some(a)
+            },
+            Err(e) => { if cmd != "show" { handle_error(e.to_string()); return; }; None }
+        };
+    }
 
     if account != "" {
         account_index = match accounts.iter().position(|x| x.name == account) {
