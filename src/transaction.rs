@@ -63,6 +63,6 @@ impl Transaction {
     }
 
     pub fn save_to_string(&self) -> String {
-        format!("{:?}:{}:{}\n", self.date, self.amount, self.description).to_string()
+        format!("{:?};{};{}\n", self.date, self.amount, self.description).to_string()
     }
 }

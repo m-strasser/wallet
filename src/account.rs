@@ -129,4 +129,11 @@ impl Account {
 
         Ok(self)
     }
+
+    pub fn got(&mut self, amount: f64, description: String)
+        -> &mut Account {
+        self.transactions.push(Transaction::new(UTC::now(), amount, description));
+
+        self
+    }
 }
