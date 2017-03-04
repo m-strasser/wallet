@@ -48,6 +48,18 @@ impl Account {
         }
     }
 
+    pub fn create(name: String, description: String, can_overdraw: bool) -> Account {
+        let filepath = format!(".{}.finance", name.replace(" ", "_").to_lowercase()).to_string();
+        Account {
+            name: name,
+            description: description,
+            filepath: filepath,
+            balance: 0.0,
+            can_overdraw: can_overdraw,
+            transactions: Box::<Vec<Transaction>>::new(Vec::new())
+        }
+    }
+
     pub fn load(path: String) -> Result<Account, io::Error> {
         let f = match OpenOptions::new().read(true).open(&path) {
             Ok(f) => f,
@@ -99,7 +111,7 @@ impl Account {
     }
 
     pub fn save(&self) -> Result<&Account, io::Error> {
-        let mut f = match OpenOptions::new().write(true).open(&self.filepath) {
+        let mut f = match OpenOptions::new().write(true).create(true).open(&self.filepath) {
             Ok(f) => f,
             Err(e) => { return Err(e); }
         };
