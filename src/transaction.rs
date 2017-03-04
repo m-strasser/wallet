@@ -53,7 +53,7 @@ impl Transaction {
             )
         };
 
-        let description: String = parts[2].to_string();
+        let description: String = parts[2].trim().to_string();
 
         Ok(Transaction {
             date: date,

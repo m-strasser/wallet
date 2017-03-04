@@ -7,6 +7,8 @@ extern crate chrono;
 
 use argparse::{ArgumentParser, Store, StoreTrue, Collect};
 use std::fmt;
+use std::fs::OpenOptions;
+use std::io::{BufRead, BufReader};
 
 fn handle_error(msg: String) {
     println!("ERROR: {}!", msg);
@@ -55,13 +57,26 @@ impl Args {
 
 fn main() {
     let mut cmd = String::new();
+    let mut accounts = Vec::new();
 
-    let cash = match Account::load(".my_account.finance".to_string()) {
-        Ok(a) => a,
+    let f = match OpenOptions::new().read(true).open(&account::ACCOUNTS_FILE) {
+        Ok(f) => f,
         Err(e) => { handle_error(e.to_string()); return; }
     };
+    let reader = BufReader::new(&f);
 
-    let mut accounts = vec![cash];
+    for line in reader.lines() {
+        match line {
+            Ok(l) => {
+                match Account::load(l) {
+                    Ok(a) => accounts.push(a),
+                    Err(e) => { handle_error(e.to_string()); return; }
+                }
+            },
+            Err(e) => { handle_error(e.to_string()); return; }
+        };
+    }
+
     let default_account = 0;
     let mut account = String::new();
     let mut can_overdraw = false;
@@ -85,6 +100,12 @@ fn main() {
         ap.refer(&mut can_overdraw)
             .add_option(&["-o", "--overdraw"], StoreTrue, "Pass if the account can be overdrawn.");
         ap.parse_args_or_exit();
+    }
+
+    if accounts.len() == 0 && cmd != "new" {
+        println!("There are no accounts yet.");
+        println!("You can create one with the 'new' command.");
+        return;
     }
 
     let args: Option<Args> = match Args::from_string(str_args.join(" ")) {
@@ -124,12 +145,21 @@ fn main() {
             };
         },
         "show" => {
-            println!("{}", accounts[account_index]);
+            let mut overall_balance = 0.0;
+            for account in &accounts {
+                println!("'{}'", account);
+                overall_balance += account.balance;
+            }
+            println!("=====================================================");
+            println!("{:.*}", 2, overall_balance);
         },
         "new" => {
             match args {
                 Some(a) => {
-                    let account: Account = Account::create(a.name, description, can_overdraw);
+                    let account: Account = match Account::create(a.name, description, can_overdraw) {
+                        Ok(a) => a,
+                        Err(e) => { handle_error(e.to_string()); return; }
+                    };
                     match account.save() {
                         Ok(a) => { println!("Created account {}", a.name); },
                         Err(e) => { handle_error(e.to_string()); return; }

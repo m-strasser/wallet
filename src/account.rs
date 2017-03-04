@@ -8,23 +8,26 @@ use chrono::prelude::UTC;
 
 #[derive (Debug)]
 pub enum AccountError {
-    NoOverdraw( String )
+    NoOverdraw( String ),
+    FileError( String )
 }
 
 impl fmt::Display for AccountError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             &AccountError::NoOverdraw(ref msg) => return write!(f, "{}", msg),
+            &AccountError::FileError(ref msg) => return write!(f, "{}", msg),
         };
     }
 }
+pub static ACCOUNTS_FILE: &'static str = ".accounts.finance";
 
 #[derive (Debug)]
 pub struct Account {
     pub name: String,
     description: String,
     filepath: String,
-    balance: f64,
+    pub balance: f64,
     can_overdraw: bool,
     transactions: Box<Vec<Transaction>>
 }
@@ -48,16 +51,28 @@ impl Account {
         }
     }
 
-    pub fn create(name: String, description: String, can_overdraw: bool) -> Account {
+    pub fn create(name: String, description: String, can_overdraw: bool)
+        -> Result<Account, AccountError> {
         let filepath = format!(".{}.finance", name.replace(" ", "_").to_lowercase()).to_string();
-        Account {
+
+        let mut f = match OpenOptions::new().append(true).create(true).open(&ACCOUNTS_FILE) {
+            Ok(f) => f,
+            Err(e) => return Err(AccountError::FileError(e.to_string()))
+        };
+
+        match write!(f, "{}\n", filepath) {
+            Ok(_) => {},
+            Err(e) => return Err(AccountError::FileError(e.to_string()))
+        }
+
+        Ok(Account {
             name: name,
             description: description,
             filepath: filepath,
             balance: 0.0,
             can_overdraw: can_overdraw,
             transactions: Box::<Vec<Transaction>>::new(Vec::new())
-        }
+        })
     }
 
     pub fn load(path: String) -> Result<Account, io::Error> {
@@ -90,13 +105,14 @@ impl Account {
                 "Second account value needs to be bool!")
             )
         };
-        let description: String = parts[2].to_string();
+        let description: String = parts[2].trim().to_string();
         let mut balance: f64 = 0.0;
 
         let mut transactions: Vec<Transaction> = Vec::new();
         for res in reader.lines() {
             match res {
                 Ok(line) => {
+                    if line.len() < 1 { continue; }
                     match Transaction::load_from_string(line) {
                         Ok(t) => { balance += t.amount; transactions.push(t); },
                         Err(e) => return Err(e)
@@ -115,7 +131,7 @@ impl Account {
             Ok(f) => f,
             Err(e) => { return Err(e); }
         };
-        match write!(f, "{};{};{}", self.name, self.can_overdraw, self.description) {
+        match write!(f, "{};{};{}\n", self.name, self.can_overdraw, self.description) {
             Ok(_) => {},
             Err(e) => return Err(e)
         }
