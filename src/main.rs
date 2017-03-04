@@ -1,24 +1,16 @@
 mod account;
+mod transaction;
 use account::Account;
 
 extern crate argparse;
+extern crate chrono;
 
-use std::io;
 use std::fs::{OpenOptions};
-use std::io::{Write, BufReader, BufRead};
+use std::io::{Write};
 use argparse::{ArgumentParser, Store, Collect};
 
 fn handle_error(msg: String) {
     println!("ERROR: {}!", msg);
-}
-
-fn spent(amounts: Vec<f64>) {
-    if amounts.len() < 1 {
-        handle_error("At least one amount hast to be specified".to_string());
-        return;
-    }
-    println!("Adding new expense(s) {:?}", amounts);
-    store(amounts.into_iter().map(|x| x * (-1.0)).collect());
 }
 
 fn got(amounts: Vec<f64>) {
@@ -43,43 +35,16 @@ fn store(amounts: Vec<f64>) {
     }
 }
 
-fn restore(path: String) -> Result<Vec<Account>, io::Error> {
-    let mut accounts: Vec<Account> = Vec::new();
-    let mut account_paths: Vec<Result<String, io::Error>> = Vec::new();
-
-    let f = match OpenOptions::new().read(true).open(path) {
-        Ok(f) => f,
-        Err(e) => return Err(e)
-    };
-    let reader = BufReader::new(&f);
-
-    for res in reader.lines() {
-        account_paths.push(res);
-    }
-
-    for account_path in account_paths {
-        match account_path {
-            Ok(line) => {
-                match Account::load(line) {
-                    Ok(acc) => accounts.push(acc),
-                    Err(e) => return Err(e)
-                };
-            },
-            Err(e) => return Err(e)
-        }
-    }
-
-    Ok(accounts)
-}
-
 fn main() {
     let mut expense = 0;
     let mut cmd = String::new();
 
-    let mut accounts: Vec<Account> = match restore(".accounts.finance".to_string()) {
-        Ok(accs) => accs,
+    let cash = match Account::load(".my_account.finance".to_string()) {
+        Ok(a) => a,
         Err(e) => { handle_error(e.to_string()); return; }
     };
+
+    let mut accounts = vec![cash];
     let default_account = 0;
     let mut account = String::new();
     let mut account_index = default_account;
@@ -111,14 +76,22 @@ fn main() {
     match cmd.as_ref() {
         "spent" => {
             for amount in amounts {
-                accounts[account_index].spent(amount).save();
+                match accounts[account_index].spent(amount, String::from("Stuff")) {
+                    Ok(_) => {
+                        match accounts[account_index].save() {
+                            Ok(_) => {},
+                            Err(e) => { handle_error(e.to_string()); return; }
+                        }
+                    },
+                    Err(e) => { handle_error(e.to_string()); return; }
+                }
             }
         },
         "got" => {
             got(amounts);
         },
         "show" => {
-            println!("{:?}", accounts);
+            println!("{}", accounts[account_index]);
         },
         _ => {
             handle_error("Invalid command supplied".to_string());

@@ -5,3 +5,5 @@ authors = ["m-strasser <mst1409@gmx.at>"]
 
 [dependencies]
 argparse = "*"
+time = "0.1"
+chrono = "0.3"
