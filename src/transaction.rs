@@ -11,7 +11,7 @@ pub struct Transaction {
 
 impl fmt::Display for Transaction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} @ {:.*}: {}", self.date.format("%Y-%m-%d"), 2, self.amount, self.description)
+        write!(f, "{:.*} @ {}: {}", 2, self.amount, self.date.format("%Y-%m-%d"), self.description)
     }
 }
 
