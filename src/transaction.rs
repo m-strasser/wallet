@@ -1,16 +1,19 @@
 use interval::Interval;
 use interval::interval_from_string;
 
+use std::rc::Rc;
 use std::io;
 use std::fmt;
 use chrono::prelude::{DateTime, UTC};
+use chrono::{Datelike, Duration};
 
-#[derive (Debug)]
+#[derive (Debug, Clone)]
 pub struct Transaction {
     pub date: DateTime<UTC>,
     pub amount: f64,
     pub description: String,
     pub interval: Option<Interval>,
+    pub last_occurrence: Option<DateTime<UTC>>
 }
 
 impl fmt::Display for Transaction {
@@ -20,12 +23,62 @@ impl fmt::Display for Transaction {
 }
 
 impl Transaction {
-    pub fn new(date: DateTime<UTC>, amount: f64, description: String, interval: Option<Interval>) -> Transaction {
+    pub fn update(&mut self, ts: &mut Vec<Rc<Transaction>>) {
+        let mut last: DateTime<UTC>;
+        let mut t: Rc<Transaction>;
+
+        match self.interval.clone() {
+            Some(i) => {
+                match self.last_occurrence {
+                    Some(o) => {
+                        match i {
+                            Interval::Daily => {
+                                self.push_occurrences(ts, Duration::days(1));
+                            },
+                            Interval::Weekly => {
+                                self.push_occurrences(
+                                    ts,
+                                    Duration::span(Duration::days(7))
+                                );
+                            },
+                            Interval::Biweekly => {
+                                self.push_occurrences(ts, Duration::days(14));
+                            },
+                            Interval::Monthly => {
+                                self.push_occurrences(ts, Duration::days(30));
+                            }
+                            _ => {}
+                        }
+                    },
+                    None => {}
+                }
+            },
+            None => {}
+        }
+    }
+
+    fn push_occurrences(&mut self, ts: &mut Vec<Rc<Transaction>>, d: Duration) {
+        let o = self.last_occurrence.unwrap();
+        let mut last: DateTime<UTC> = o + d;
+        let mut t: Rc<Transaction>;
+
+        while last.date() < UTC::now().date() {
+            t = Rc::new(self.clone());
+            ts.push(t);
+
+            last = last + d;
+        }
+
+        self.last_occurrence = Some(last);
+    }
+
+    pub fn new(date: DateTime<UTC>, amount: f64, description: String, interval: Option<Interval>, last_occurrence: Option<DateTime<UTC>>) -> Transaction {
         Transaction {
             date: date,
             amount: amount,
             description: description,
-            interval: interval
+            interval: interval,
+            last_occurrence: last_occurrence
         }
     }
 
@@ -72,7 +125,8 @@ impl Transaction {
             date: date,
             amount: amount,
             description: description,
-            interval: interval
+            interval: interval,
+            last_occurrence: Some(date) // @TODO: Store last occurrence
         });
     }
 
