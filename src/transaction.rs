@@ -1,11 +1,12 @@
 use interval::Interval;
 use interval::interval_from_string;
+use dateutils::last_day_of_month;
 
 use std::rc::Rc;
 use std::io;
 use std::fmt;
 use chrono::prelude::{DateTime, UTC};
-use chrono::{Datelike, Duration};
+use chrono::{Datelike, Timelike, Duration, TimeZone};
 
 #[derive (Debug, Clone)]
 pub struct Transaction {
@@ -33,12 +34,15 @@ impl Transaction {
                     Some(o) => {
                         match i {
                             Interval::Daily => {
-                                self.push_occurrences(ts, Duration::days(1));
+                                self.push_occurrences(
+                                    ts,
+                                    |&d| { return Duration::days(1); }
+                                );
                             },
                             Interval::Weekly => {
                                 self.push_occurrences(
                                     ts,
-                                    Duration::span(Duration::days(7))
+                                    Transaction::until_next_month
                                 );
                             },
                             Interval::Biweekly => {
@@ -47,7 +51,6 @@ impl Transaction {
                             Interval::Monthly => {
                                 self.push_occurrences(ts, Duration::days(30));
                             }
-                            _ => {}
                         }
                     },
                     None => {}
@@ -57,16 +60,32 @@ impl Transaction {
         }
     }
 
-    fn push_occurrences(&mut self, ts: &mut Vec<Rc<Transaction>>, d: Duration) {
+    fn until_next_month(d: &DateTime<UTC>) -> Duration {
+        let mut day = d.day();
+        let mut month = d.month();
+        let mut year = d.year();
+
+        month = (month + 1) % 12;
+        if month == 0 { month = 12; year += 1; }
+
+        if day == last_day_of_month(month-1) {
+            day = last_day_of_month(month);
+        }
+
+        UTC.ymd(year, month, day).and_hms(d.hour(), d.minute(), d.second()) - d
+    }
+
+    fn push_occurrences<F>(&mut self, ts: &mut Vec<Rc<Transaction>>, d: F)
+        where F: Fn(&DateTime<UTC>) -> Duration {
         let o = self.last_occurrence.unwrap();
-        let mut last: DateTime<UTC> = o + d;
+        let mut last: DateTime<UTC> = o + d(&o);
         let mut t: Rc<Transaction>;
 
         while last.date() < UTC::now().date() {
             t = Rc::new(self.clone());
             ts.push(t);
 
-            last = last + d;
+            last = last + d(&last);
         }
 
         self.last_occurrence = Some(last);
