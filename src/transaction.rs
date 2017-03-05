@@ -24,7 +24,7 @@ impl fmt::Display for Transaction {
 }
 
 impl Transaction {
-    pub fn update(&mut self, ts: &mut Vec<Rc<Transaction>>) {
+    pub fn update(&mut self, ts: &mut Vec<Rc<Transaction>>) -> &mut Transaction {
         let mut last: DateTime<UTC>;
         let mut t: Rc<Transaction>;
 
@@ -36,20 +36,20 @@ impl Transaction {
                             Interval::Daily => {
                                 self.push_occurrences(
                                     ts,
-                                    |&d| { return Duration::days(1); }
+                                    Duration::days(1)
                                 );
                             },
                             Interval::Weekly => {
                                 self.push_occurrences(
                                     ts,
-                                    Transaction::until_next_month
+                                    Duration::days(7)
                                 );
                             },
                             Interval::Biweekly => {
                                 self.push_occurrences(ts, Duration::days(14));
                             },
                             Interval::Monthly => {
-                                self.push_occurrences(ts, Duration::days(30));
+                                self.push_occurrences(ts, Transaction::until_next_month(o));
                             }
                         }
                     },
@@ -58,9 +58,11 @@ impl Transaction {
             },
             None => {}
         }
+
+        return self;
     }
 
-    fn until_next_month(d: &DateTime<UTC>) -> Duration {
+    fn until_next_month(d: DateTime<UTC>) -> Duration {
         let mut day = d.day();
         let mut month = d.month();
         let mut year = d.year();
@@ -72,20 +74,19 @@ impl Transaction {
             day = last_day_of_month(month);
         }
 
-        UTC.ymd(year, month, day).and_hms(d.hour(), d.minute(), d.second()) - d
+        Duration::days(day as i64)
     }
 
-    fn push_occurrences<F>(&mut self, ts: &mut Vec<Rc<Transaction>>, d: F)
-        where F: Fn(&DateTime<UTC>) -> Duration {
+    fn push_occurrences(&mut self, ts: &mut Vec<Rc<Transaction>>, d: Duration) {
         let o = self.last_occurrence.unwrap();
-        let mut last: DateTime<UTC> = o + d(&o);
+        let mut last: DateTime<UTC> = o + d;
         let mut t: Rc<Transaction>;
 
         while last.date() < UTC::now().date() {
-            t = Rc::new(self.clone());
+            t = Rc::new(Transaction::new(last, self.amount, self.description.clone(), None, None));
             ts.push(t);
 
-            last = last + d(&last);
+            last = last + d;
         }
 
         self.last_occurrence = Some(last);

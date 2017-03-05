@@ -11,7 +11,7 @@ use argparse::{ArgumentParser, Store, StoreTrue, Collect};
 use std::fmt;
 use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader};
-use chrono::{UTC, TimeZone};
+use chrono::{UTC, TimeZone, Duration};
 
 fn handle_error(msg: String) {
     println!("ERROR: {}!", msg);
@@ -84,6 +84,8 @@ fn print_account(name: String, accounts: &Vec<Account>) {
 }
 
 fn main() {
+    let d = UTC.ymd(2017,02,28);
+    println!("{}", d + Duration::days(31));
     let mut cmd = String::new();
     let mut accounts = Vec::new();
 
