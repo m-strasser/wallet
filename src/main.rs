@@ -2,6 +2,8 @@ mod interval;
 mod account;
 mod transaction;
 mod dateutils;
+#[cfg(test)]
+mod test_recurring;
 use account::Account;
 
 extern crate argparse;
@@ -84,8 +86,6 @@ fn print_account(name: String, accounts: &Vec<Account>) {
 }
 
 fn main() {
-    let d = UTC.ymd(2017,02,28);
-    println!("{}", d + Duration::days(31));
     let mut cmd = String::new();
     let mut accounts = Vec::new();
 

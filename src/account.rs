@@ -131,7 +131,7 @@ impl Account {
 
                     match transaction.interval {
                         Some(_) => recurring.push(transaction.clone()),
-                        None => {}
+                        None => { transactions.push(transaction.clone()); }
                     }
                 },
                 Err(e) => return Err(e)

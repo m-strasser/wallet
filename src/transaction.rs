@@ -151,10 +151,10 @@ impl Transaction {
     }
 
     pub fn save_to_string(&self) -> String {
-        let mut string = format!("{:?};{};{}\n", self.date, self.amount, self.description).to_string();
+        let mut string = format!("{:?};{};{}", self.date, self.amount, self.description).to_string();
         string = match self.interval {
-            Some(ref i) => format!("{}:{:?}", string, i),
-            None => format!("{}", string)
+            Some(ref i) => format!("{};{:?};{:?}\n", string, i, self.last_occurrence),
+            None => format!("{}\n", string)
         };
 
         return string;

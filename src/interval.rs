@@ -10,10 +10,10 @@ pub enum Interval {
 
 pub fn interval_from_string(s: String) -> Result<Interval, io::Error> {
     match s.as_ref() {
-        "d" => return Ok(Interval::Daily),
-        "w" => return Ok(Interval::Weekly),
-        "b" => return Ok(Interval::Biweekly),
-        "m" => return Ok(Interval::Monthly),
+        "Daily" => return Ok(Interval::Daily),
+        "Weekly" => return Ok(Interval::Weekly),
+        "Biweekly" => return Ok(Interval::Biweekly),
+        "Monthly" => return Ok(Interval::Monthly),
         _ => return Err(io::Error::new(io::ErrorKind::Other,
                 "Invalid interval flag stored"))
     }
