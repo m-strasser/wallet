@@ -234,4 +234,13 @@ impl Account {
 
         self
     }
+
+    pub fn set(&mut self, amount: f64, description: String)
+        -> &mut Account {
+        let difference = amount - self.balance;
+        self.transactions.push(Rc::new(Transaction::new(UTC::now(), difference,
+            description, None, None)));
+
+        self
+    }
 }

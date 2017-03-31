@@ -123,7 +123,7 @@ fn main() {
             .add_argument("COMMAND", Store, "Command to execute.")
             .required();
         ap.refer(&mut str_args)
-            .add_argument("<args>", Collect, "The arguments of the command.");
+            .add_argument("<args>", Collect, "The categories the transaction shall be placed in.");
         ap.refer(&mut account)
             .add_option(&["--account", "-a"], Store, "Account to operate on.");
         ap.refer(&mut description)
@@ -198,6 +198,16 @@ fn main() {
                 },
                 None => { handle_error("Command 'new' needs at least a name specified".to_string()); return; }
             }
+        },
+        "set" => {
+          match amount {
+            Some(a) => {
+              accounts[account_index].set(a, description);
+            },
+            None => { handle_error("Command set needs at least an amount specified".to_string()); return; }
+          }
+        },
+        "category" => {
         },
         _ => {
             handle_error("Invalid command supplied".to_string());
