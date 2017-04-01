@@ -12,7 +12,8 @@ use chrono::{Duration, Datelike};
 #[derive (Debug)]
 pub enum AccountError {
     NoOverdraw( String ),
-    FileError( String )
+    FileError( String ),
+    MissingOptions( String )
 }
 
 impl fmt::Display for AccountError {
@@ -20,6 +21,7 @@ impl fmt::Display for AccountError {
         match self {
             &AccountError::NoOverdraw(ref msg) => return write!(f, "{}", msg),
             &AccountError::FileError(ref msg) => return write!(f, "{}", msg),
+            &AccountError::MissingOptions(ref msg) => return write!(f, "{}", msg),
         };
     }
 }

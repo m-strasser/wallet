@@ -48,12 +48,13 @@ impl AccountArgs {
     }
 }
 
+#[derive( Clone )]
 pub struct Args {
     pub cmd: String,
     pub account: Option<String>,
+    pub amount: Option<f64>,
     pub description: String,
-    pub can_overdraw: bool,
-    pub collected: Option<AccountArgs>
+    pub can_overdraw: bool
 }
 
 pub fn handle_args() -> Args {
@@ -82,18 +83,17 @@ pub fn handle_args() -> Args {
     }
 
     let mut arguments = Args {
-        cmd: cmd.clone(), account: None, description: "No description".to_string(),
-        can_overdraw: can_overdraw.clone(), collected: None };
+        cmd: cmd.clone(), account: None, amount: None,
+        description: "No description".to_string(),
+        can_overdraw: can_overdraw.clone() };
 
     if account != "" { arguments.account = Some(account.clone()); }
     if description != "" { arguments.description = description.clone(); }
     if str_args.len() > 0 {
-        if cmd != "category" {
-            arguments.collected = match AccountArgs::from_string(str_args.join(" ")) {
-                Ok(a) => Some(a),
-                Err(_) => None
-            }
-        }
+        arguments.amount = match str_args[0].parse::<f64>() {
+            Ok(a) => Some(a),
+            Err(_) => None
+        };
     }
 
     return arguments;

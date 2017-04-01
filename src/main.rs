@@ -5,6 +5,7 @@ mod dateutils;
 mod category;
 mod accountmanager;
 mod arguments;
+mod commands;
 
 #[cfg(test)]
 mod test_recurring;
@@ -14,6 +15,7 @@ use accountmanager::print_overview;
 use accountmanager::print_account;
 use accountmanager::load_accounts;
 use arguments::handle_args;
+use commands::{New, Show, Got, Set, Spent, Command};
 
 extern crate argparse;
 extern crate chrono;
@@ -39,16 +41,16 @@ fn main() {
         return;
     }
 
-    match args.collected {
-        Some(ref c) => { amount = (&c.amount).clone(); },
-        None => if args.cmd != "show" {
-            handle_error("You need to specify an amount".to_string());
-            return;
-        }
-    }
+    // match args.collected {
+    //     Some(ref c) => { amount = (&c.amount).clone(); },
+    //     None => if args.cmd != "show" {
+    //         handle_error("You need to specify an amount".to_string());
+    //         return;
+    //     }
+    // }
 
     match args.account {
-        Some(a) => {
+        Some(ref a) => {
             account_index = match accounts.iter().position(|x| x.name == a.clone()) {
                 Some(i) => i,
                 None => { println!("Unkown account, reverting to default!"); default_account }
@@ -60,73 +62,69 @@ fn main() {
         }
     }
 
+    let new = New {};
+    let spent = Spent {};
+    let got = Got {};
+    let set = Set {};
+    // let show = Show { name: "show".to_string(), accounts: &accounts };
+
     match args.cmd.as_ref() {
-        "spent" => {
-            match amount {
-                Some(a) => {
-                    match accounts[account_index].spent(a, args.description) {
-                        Ok(_) => {},
-                        Err(e) => { handle_error(e.to_string()); return; }
+        "new" => {
+            match new.execute(None, &args) {
+                Ok(x) => {
+                    match x {
+                        Some(a) => { accounts.push(a); },
+                        None => {
+                            handle_error("An unexpected error occurred".to_string());
+                            return;
+                        }
                     }
                 },
-                None => { handle_error("Command 'spent' requires an amount".to_string()); return; }
-            };
-        },
-        "got" => {
-            match amount {
-                Some(a) => accounts[account_index].got(a, args.description),
-                None => {
-                    handle_error("Command 'got' requires an amount".to_string());
+                Err(e) => {
+                    handle_error(e.to_string());
                     return;
                 }
-            };
-        },
-        "show" => {
-            match args.collected {
-                Some(a) => { print_account(a.name, &accounts); },
-                None => { print_overview(&accounts); }
             }
         },
-        "new" => {
-            match args.collected {
-                Some(a) => {
-                    let account: Account = match Account::create(a.name, args.description, args.can_overdraw) {
-                        Ok(a) => a,
-                        Err(e) => { handle_error(e.to_string()); return; }
-                    };
-                    match account.save() {
-                        Ok(a) => { println!("Created account {}", a.name); },
-                        Err(e) => { handle_error(e.to_string()); return; }
-                    };
-                    accounts.push(account);
-                },
-                None => { handle_error("Command 'new' needs at least a name specified".to_string()); return; }
+        "spent" => {
+            match spent.execute(Some(&mut accounts[account_index]), &args) {
+                Ok(_) => {},
+                Err(e) => {
+                    handle_error(e.to_string());
+                    return;
+                }
+            }
+        },
+        "got" => {
+            match got.execute(Some(&mut accounts[account_index]), &args) {
+                Ok(_) => {},
+                Err(e) => {
+                    handle_error(e.to_string());
+                    return;
+                }
             }
         },
         "set" => {
-          match amount {
-            Some(a) => {
-              accounts[account_index].set(a, args.description);
-            },
-            None => { handle_error("Command set needs at least an amount specified".to_string()); return; }
-          }
+            match set.execute(Some(&mut accounts[account_index]), &args) {
+                Ok(_) => {},
+                Err(e) => {
+                    handle_error(e.to_string());
+                    return;
+                }
+            }
         },
-        "category" => {
-            // match str_args[0].as_ref() {
-            //     "add" => {
-            //         if str_args.len() < 2 {
-            //             handle_error("category add needs at least a name specified".to_string());
-            //             return;
-            //         }
-            //     }
-            //     _ => {}
-            // }
+        "show" => {
+            match args.account {
+                Some(a) => { print_account(a, &accounts); },
+                None => { print_overview(&accounts); }
+            }
         },
         _ => {
             handle_error("Invalid command supplied".to_string());
             return;
         }
-    };
+    }
+
     match accounts[account_index].save() {
         Ok(_) => {},
         Err(e) => { handle_error(e.to_string()); return; }
