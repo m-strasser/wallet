@@ -2,6 +2,9 @@
  * Handles functionality over multiple accounts.
  **/
 
+use account::ACCOUNTS_FILE;
+use std::fs::OpenOptions;
+use std::io::{BufRead, BufReader, Error};
 use account::Account;
 
 pub fn print_overview(accounts: &Vec<Account>) {
@@ -27,4 +30,28 @@ pub fn print_account(name: String, accounts: &Vec<Account>) {
     for transaction in accounts[account_index].transactions.iter() {
         println!("{}", transaction);
     }
+}
+
+pub fn load_accounts() -> Result<Vec<Account>, Error> {
+    let mut accounts = Vec::new();
+
+    let f = match OpenOptions::new().read(true).open(&ACCOUNTS_FILE) {
+        Ok(f) => f,
+        Err(e) => { return Err(e); }
+    };
+    let reader = BufReader::new(&f);
+
+    for line in reader.lines() {
+        match line {
+            Ok(l) => {
+                match Account::load(l) {
+                    Ok(a) => accounts.push(a),
+                    Err(e) => { return Err(e); }
+                }
+            },
+            Err(e) => { return Err(e); }
+        };
+    }
+
+    return Ok(accounts);
 }

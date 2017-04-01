@@ -12,43 +12,26 @@ mod test_recurring;
 use account::Account;
 use accountmanager::print_overview;
 use accountmanager::print_account;
+use accountmanager::load_accounts;
 use arguments::handle_args;
 
 extern crate argparse;
 extern crate chrono;
-
-use std::fs::OpenOptions;
-use std::io::{BufRead, BufReader};
 
 fn handle_error(msg: String) {
     println!("ERROR: {}!", msg);
 }
 
 fn main() {
-    let mut accounts = Vec::new();
-
-    let f = match OpenOptions::new().read(true).open(&account::ACCOUNTS_FILE) {
-        Ok(f) => f,
-        Err(e) => { handle_error(e.to_string()); return; }
-    };
-    let reader = BufReader::new(&f);
-
-    for line in reader.lines() {
-        match line {
-            Ok(l) => {
-                match Account::load(l) {
-                    Ok(a) => accounts.push(a),
-                    Err(e) => { handle_error(e.to_string()); return; }
-                }
-            },
-            Err(e) => { handle_error(e.to_string()); return; }
-        };
-    }
-
     let default_account = 0;
     let mut account_index = default_account;
     let args = handle_args();
     let mut amount: Option<f64> = None;
+
+    let mut accounts: Vec<Account> = match load_accounts() {
+        Ok(a) => a,
+        Err(e) => { handle_error(e.to_string()); return; }
+    };
 
     if accounts.len() == 0 && args.cmd != "new" {
         println!("There are no accounts yet.");
