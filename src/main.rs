@@ -2,9 +2,15 @@ mod interval;
 mod account;
 mod transaction;
 mod dateutils;
+mod category;
 #[cfg(test)]
 mod test_recurring;
+mod accountmanager;
+
 use account::Account;
+use category::Category;
+use accountmanager::print_overview;
+use accountmanager::print_account;
 
 extern crate argparse;
 extern crate chrono;
@@ -60,31 +66,6 @@ impl Args {
     }
 }
 
-fn print_overview(accounts: &Vec<Account>) {
-    let mut overall_balance = 0.0;
-    for account in accounts {
-        println!("{}", account);
-        overall_balance += account.balance;
-    }
-    println!("=====================================================");
-    println!("{:.*}", 2, overall_balance);
-}
-
-fn print_account(name: String, accounts: &Vec<Account>) {
-    let account_index = match (*accounts).iter().position(|x| x.name == name) {
-        Some(i) => i,
-        None => {
-            println!("Unkown account, printing overview.");
-            print_overview(&accounts);
-            return;
-        }
-    };
-
-    for transaction in accounts[account_index].transactions.iter() {
-        println!("{}", transaction);
-    }
-}
-
 fn main() {
     let mut cmd = String::new();
     let mut accounts = Vec::new();
@@ -115,6 +96,7 @@ fn main() {
     let mut description: String = String::from("No description");
     let mut str_args: Vec<String> = Vec::new();
     let mut args: Option<Args> = None;
+    let mut category_flag = -1;
 
     {
         let mut ap = ArgumentParser::new();
@@ -140,13 +122,15 @@ fn main() {
     }
 
     if str_args.len() > 0 {
-        args = match Args::from_string(str_args.join(" ")) {
-            Ok(a) => {
-                amount = a.amount;
-                Some(a)
-            },
-            Err(e) => { if cmd != "show" { handle_error(e.to_string()); return; }; None }
-        };
+        if cmd != "category" {
+            args = match Args::from_string(str_args.join(" ")) {
+                Ok(a) => {
+                    amount = a.amount;
+                    Some(a)
+                },
+                Err(e) => { if cmd != "show" { handle_error(e.to_string()); return; }; None }
+            };
+        }
     }
 
     if account != "" {
@@ -208,6 +192,15 @@ fn main() {
           }
         },
         "category" => {
+            match str_args[0].as_ref() {
+                "add" => {
+                    if str_args.len() < 2 {
+                        handle_error("category add needs at least a name specified".to_string());
+                        return;
+                    }
+                }
+                _ => {}
+            }
         },
         _ => {
             handle_error("Invalid command supplied".to_string());
