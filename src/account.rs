@@ -4,7 +4,9 @@ use interval::Interval;
 use std::rc::Rc;
 use std::io;
 use std::fmt;
-use std::fs::{OpenOptions};
+use std::env::home_dir;
+use std::path::Path;
+use std::fs::{File,OpenOptions};
 use std::io::{Write, BufReader, BufRead};
 use chrono::prelude::{UTC, DateTime};
 use chrono::{Duration, Datelike};
@@ -27,6 +29,7 @@ impl fmt::Display for AccountError {
 }
 
 pub static ACCOUNTS_FILE: &'static str = ".accounts.finance";
+pub static BASE_PATH: &'static str = ".wallet";
 
 #[derive (Debug)]
 pub struct Account {
@@ -45,7 +48,7 @@ impl fmt::Display for Account {
 }
 
 impl Account {
-    pub fn new(n: String, d: String, fp:String, b: f64, o: bool, ts: Box<Vec<Rc<Transaction>>>)
+    pub fn new(n: String, d: String, fp: String, b: f64, o: bool, ts: Box<Vec<Rc<Transaction>>>)
         -> Account {
         Account {
             name: n,
@@ -59,14 +62,25 @@ impl Account {
 
     pub fn create(name: String, description: String, can_overdraw: bool)
         -> Result<Account, AccountError> {
-        let filepath = format!(".{}.finance", name.replace(" ", "_").to_lowercase()).to_string();
 
-        let mut f = match OpenOptions::new().append(true).create(true).open(&ACCOUNTS_FILE) {
+        let home_dir = match home_dir() {
+            Some(p) => p,
+            None => {
+                return Err(AccountError::FileError(
+                        "Could not get home directory".to_string()
+                ));
+            }
+        };
+
+        let filename = format!(".{}.finance", name.replace(" ", "_").to_lowercase()).to_string();
+        let filepath = home_dir.join(&BASE_PATH).join(filename);
+
+        let mut f = match OpenOptions::new().append(true).open(home_dir.join(&BASE_PATH).join(&ACCOUNTS_FILE)) {
             Ok(f) => f,
             Err(e) => return Err(AccountError::FileError(e.to_string()))
         };
 
-        match write!(f, "{}\n", filepath) {
+        match write!(f, "{}\n", filepath.display()) {
             Ok(_) => {},
             Err(e) => return Err(AccountError::FileError(e.to_string()))
         }
@@ -74,7 +88,7 @@ impl Account {
         Ok(Account {
             name: name,
             description: description,
-            filepath: filepath,
+            filepath: format!("{}", filepath.display()),
             balance: 0.0,
             can_overdraw: can_overdraw,
             transactions: Box::<Vec<Rc<Transaction>>>::new(Vec::new())

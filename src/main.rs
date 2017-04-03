@@ -16,6 +16,9 @@ use accountmanager::print_account;
 use accountmanager::load_accounts;
 use arguments::handle_args;
 use commands::{New, Show, Got, Set, Spent, Command};
+use std::fs::{File};
+use std::io::{BufReader, BufRead};
+use std::path::Path;
 
 extern crate argparse;
 extern crate chrono;

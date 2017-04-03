@@ -2,9 +2,10 @@
  * Handles functionality over multiple accounts.
  **/
 
-use account::ACCOUNTS_FILE;
+use account::{ACCOUNTS_FILE, BASE_PATH};
+use std::env::home_dir;
 use std::fs::OpenOptions;
-use std::io::{BufRead, BufReader, Error};
+use std::io::{BufRead, BufReader, Error, ErrorKind};
 use account::Account;
 
 pub fn print_overview(accounts: &Vec<Account>) {
@@ -34,11 +35,21 @@ pub fn print_account(name: String, accounts: &Vec<Account>) {
 
 pub fn load_accounts() -> Result<Vec<Account>, Error> {
     let mut accounts = Vec::new();
+    let home_dir = match home_dir() {
+        Some(p) => p,
+        None => {
+            return Err(Error::new(ErrorKind::Other,
+                "Could not get home directory"
+            ));
+        }
+    };
 
-    let f = match OpenOptions::new().read(true).open(&ACCOUNTS_FILE) {
+    let f = match OpenOptions::new().read(true).open(
+        home_dir.join(&BASE_PATH).join(&ACCOUNTS_FILE)) {
         Ok(f) => f,
         Err(e) => { return Err(e); }
     };
+
     let reader = BufReader::new(&f);
 
     for line in reader.lines() {

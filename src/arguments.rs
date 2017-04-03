@@ -90,10 +90,15 @@ pub fn handle_args() -> Args {
     if account != "" { arguments.account = Some(account.clone()); }
     if description != "" { arguments.description = description.clone(); }
     if str_args.len() > 0 {
-        arguments.amount = match str_args[0].parse::<f64>() {
-            Ok(a) => Some(a),
-            Err(_) => None
-        };
+        if cmd == "got" || cmd == "spent" {
+            arguments.amount = match str_args[0].parse::<f64>() {
+                Ok(a) => Some(a),
+                Err(_) => None
+            };
+        }
+        if cmd == "show" {
+            arguments.account = Some(str_args[0].clone());
+        }
     }
 
     return arguments;
