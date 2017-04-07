@@ -97,19 +97,19 @@ impl Command for Got {
     }
 }
 
-pub struct Show<'a> { pub name: String, pub accounts: &'a Vec<Account> }
-impl<'a> Command for Show<'a> {
-    fn execute(&self, account: Option<&mut Account>, args: &Args)
-        -> Result<Option<Account>, AccountError> {
-        match args.account {
-            Some(ref a) => {
-                print_account(a.clone(), self.accounts);
-            },
-            None => { print_overview(self.accounts); }
-        }
-        Ok(None)
-    }
-}
+// pub struct Show<'a> { pub name: String, pub accounts: &'a Vec<Account> }
+// impl<'a> Command for Show<'a> {
+//     fn execute(&self, account: Option<&mut Account>, args: &Args)
+//         -> Result<Option<Account>, AccountError> {
+//         match args.account {
+//             Some(ref a) => {
+//                 print_account(a.clone(), self.accounts);
+//             },
+//             None => { print_overview(self.accounts); }
+//         }
+//         Ok(None)
+//     }
+// }
 
 pub struct Set {}
 impl Command for Set {

@@ -2,6 +2,9 @@
  * Handles functionality over multiple accounts.
  **/
 
+use chrono::prelude::{UTC};
+use chrono::{Duration};
+use transaction::Transaction;
 use account::{ACCOUNTS_FILE, BASE_PATH};
 use std::env::home_dir;
 use std::fs::OpenOptions;
@@ -18,7 +21,8 @@ pub fn print_overview(accounts: &Vec<Account>) {
     println!("{:.*}", 2, overall_balance);
 }
 
-pub fn print_account(name: String, accounts: &Vec<Account>) {
+pub fn print_account(name: String, time_frame: Option<i64>,
+                     accounts: &Vec<Account>) {
     let account_index = match (*accounts).iter().position(|x| x.name == name) {
         Some(i) => i,
         None => {
@@ -27,10 +31,27 @@ pub fn print_account(name: String, accounts: &Vec<Account>) {
             return;
         }
     };
+    let mut expenses = 0.0;
+    let mut income = 0.0;
+    let mut ctf = false;
+    let tf = match time_frame {
+        Some(t) => { ctf = true; t},
+        None => -1
+    };
 
     for transaction in accounts[account_index].transactions.iter() {
-        println!("{}", transaction);
+        if !ctf || (UTC::now().date() - Duration::days(tf)) < transaction.date.date() {
+            println!("{}", transaction);
+            if transaction.amount > 0.0 {
+                income += transaction.amount;
+            } else {
+                expenses += transaction.amount;
+            }
+        }
     }
+    println!("============================================================");
+    println!("Spent: {:.*}", 2, expenses);
+    println!("Got: {:.*}", 2, income);
 }
 
 pub fn load_accounts() -> Result<Vec<Account>, Error> {

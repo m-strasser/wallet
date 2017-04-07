@@ -54,7 +54,8 @@ pub struct Args {
     pub account: Option<String>,
     pub amount: Option<f64>,
     pub description: String,
-    pub can_overdraw: bool
+    pub can_overdraw: bool,
+    pub time_frame: Option<i64>
 }
 
 pub fn handle_args() -> Args {
@@ -63,6 +64,7 @@ pub fn handle_args() -> Args {
     let mut can_overdraw = false;
     let mut description: String = String::from("No description");
     let mut str_args: Vec<String> = Vec::new();
+    let mut time_frame = -1;
 
     {
         let mut ap = ArgumentParser::new();
@@ -79,18 +81,20 @@ pub fn handle_args() -> Args {
             .add_option(&["-d", "--description"], Store, "Description of the transaction or account.");
         ap.refer(&mut can_overdraw)
             .add_option(&["-o", "--overdraw"], StoreTrue, "Pass if the account can be overdrawn.");
+        ap.refer(&mut time_frame)
+            .add_option(&["--tf", "--timeframe"], Store, "Displays transactions in the last X days.");
         ap.parse_args_or_exit();
     }
 
     let mut arguments = Args {
         cmd: cmd.clone(), account: None, amount: None,
         description: "No description".to_string(),
-        can_overdraw: can_overdraw.clone() };
+        can_overdraw: can_overdraw.clone(), time_frame: None };
 
     if account != "" { arguments.account = Some(account.clone()); }
     if description != "" { arguments.description = description.clone(); }
     if str_args.len() > 0 {
-        if cmd == "got" || cmd == "spent" {
+        if cmd == "got" || cmd == "spent" || cmd == "set" {
             arguments.amount = match str_args[0].parse::<f64>() {
                 Ok(a) => Some(a),
                 Err(_) => None
@@ -99,6 +103,9 @@ pub fn handle_args() -> Args {
         if cmd == "show" {
             arguments.account = Some(str_args[0].clone());
         }
+    }
+    if time_frame > 0 {
+        arguments.time_frame = Some(time_frame);
     }
 
     return arguments;

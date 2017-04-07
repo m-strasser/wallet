@@ -15,7 +15,7 @@ use accountmanager::print_overview;
 use accountmanager::print_account;
 use accountmanager::load_accounts;
 use arguments::handle_args;
-use commands::{New, Show, Got, Set, Spent, Command};
+use commands::{New, Got, Set, Spent, Command};
 use std::fs::{File};
 use std::io::{BufReader, BufRead};
 use std::path::Path;
@@ -118,7 +118,7 @@ fn main() {
         },
         "show" => {
             match args.account {
-                Some(a) => { print_account(a, &accounts); },
+                Some(a) => { print_account(a, args.time_frame, &accounts); },
                 None => { print_overview(&accounts); }
             }
         },
